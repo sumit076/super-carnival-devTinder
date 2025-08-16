@@ -13,9 +13,21 @@ import express from "express";
 
 const app = express();
 
+app.get("/user", (req, res) => {
+    // console.log(req.query);
+    // console.log(req.params); - "/user/:userId/:name/:password"
+    res.send({ firstName: "Sumit", lastName: "Saha" });
+});
+
+app.post("/user", async (req, res) => {
+    // console.log(req.body);
+    // Update the code with the logic for upsert
+    res.send("Successfully Updated!!!")
+})
+
 app.use("/index", (req, res, next) => {
     // res.send("Server is live!!")
-    res.send(`Request has been made to: ${req.url} ${server.address().port}`);
+    res.send(`Request has been made to: ${req.url} ${req.body} ${server.address().port}`);
     // next();
 })
 
