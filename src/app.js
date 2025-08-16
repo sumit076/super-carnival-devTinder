@@ -6,6 +6,7 @@
 - defines a route that responds to requests made to `/index`.
 - The server listens on port 3003 and responds with a message indicating the request URL and port number.
 - This code is part of a Node.js application that uses Express to create a simple server.
+- Added scripts in package.json to start the server in different environments.
 */
 
 import express from "express";
