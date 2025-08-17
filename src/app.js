@@ -10,17 +10,60 @@
 */
 
 import express from "express";
+import { AuthMiddleware } from "./middlewares/auth.js";
 
 const app = express();
 
+/**
+ * Middleware setup to check if the user is authenticated as an admin or a regular user.
+ * The `isAdminAuthenticated` middleware checks for an admin authentication header,
+ * while the `isUserAuthenticated` middleware checks for a user authentication header.
+ * Two different ways to authenticate and write the code for the same functionality. 
+ */
+// -------------------------------------------------------------
+app.use("/admin", AuthMiddleware.isAdminAuthenticated);
+
+app.get("/admin/dashboard", (req, res) => {
+    res.send("Welcome to Admin Dashboard");
+});
+
+app.get("/user/dashboard", AuthMiddleware.isUserAuthenticated, (req, res) => {
+    res.send("Welcome to User Dashboard");
+});
+// -------------------------------------------------------------
+
+/*
+- app.get("/user", (req, res) => {}); -> // http://localhost:3003/user?userid=101&name="server" ; result: { firstName: "Sumit", lastName: "Saha" }
+- app.get("/user/:userId/:name/:password", (req, res) => {}); -> // http://localhost:3003/user/101/server/password ; result: { userId: "101", name: "server", password: "password" }
+*/
 app.get("/user", (req, res) => {
     // console.log(req.query);
-    // console.log(req.params); - "/user/:userId/:name/:password"
+    // console.log(req.params);
+    // res.redirect("https://sumit076.github.io/")     // res.redirect("/user/userAuthentication");
     res.send({ firstName: "Sumit", lastName: "Saha" });
 });
 
-app.post("/user", async (req, res) => {
-    // console.log(req.body);
+app.get("/error", (req, res, next) => {
+    try {
+        if (!req.query.id) {
+            throw new Error("User Id is missing!!")
+        }
+        res.send({ firstName: "Sumit", lastName: "Saha" });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: err.message || "Internal Server Error",
+    });
+});
+
+app.get("/user/userAuthentication", async (req, res) => {
+    // console.log(req.body);   
     // Update the code with the logic for upsert
     res.send("Successfully Updated!!!")
 })
