@@ -1,79 +1,59 @@
-/*
-- package.json helps to manage the dependencies and scripts for the project, if node_modules is not present, it can be installed using `npm install`
-- .gitignore is used to specify files and directories that should not be tracked by git,
-- in this case, it is used to ignore the node_modules directory.
-- app.js is the main entry point of the application, it sets up an Express server and
-- defines a route that responds to requests made to `/index`.
-- The server listens on port 3003 and responds with a message indicating the request URL and port number.
-- This code is part of a Node.js application that uses Express to create a simple server.
-- Added scripts in package.json to start the server in different environments.
-*/
-
 import express from "express";
-import { AuthMiddleware } from "./middlewares/auth.js";
+import databaseConn from "./config/database.js";
+import userSchema from "./models/User.js";
 
-const app = express();
+export default class App {
 
-/**
- * Middleware setup to check if the user is authenticated as an admin or a regular user.
- * The `isAdminAuthenticated` middleware checks for an admin authentication header,
- * while the `isUserAuthenticated` middleware checks for a user authentication header.
- * Two different ways to authenticate and write the code for the same functionality. 
- */
-// -------------------------------------------------------------
-app.use("/admin", AuthMiddleware.isAdminAuthenticated);
-
-app.get("/admin/dashboard", (req, res) => {
-    res.send("Welcome to Admin Dashboard");
-});
-
-app.get("/user/dashboard", AuthMiddleware.isUserAuthenticated, (req, res) => {
-    res.send("Welcome to User Dashboard");
-});
-// -------------------------------------------------------------
-
-/*
-- app.get("/user", (req, res) => {}); -> // http://localhost:3003/user?userid=101&name="server" ; result: { firstName: "Sumit", lastName: "Saha" }
-- app.get("/user/:userId/:name/:password", (req, res) => {}); -> // http://localhost:3003/user/101/server/password ; result: { userId: "101", name: "server", password: "password" }
-*/
-app.get("/user", (req, res) => {
-    // console.log(req.query);
-    // console.log(req.params);
-    // res.redirect("https://sumit076.github.io/")     // res.redirect("/user/userAuthentication");
-    res.send({ firstName: "Sumit", lastName: "Saha" });
-});
-
-app.get("/error", (req, res, next) => {
-    try {
-        if (!req.query.id) {
-            throw new Error("User Id is missing!!")
-        }
-        res.send({ firstName: "Sumit", lastName: "Saha" });
-    } catch (err) {
-        next(err);
+    constructor() {
+        this.expressInstance = express();
+        this.db = new databaseConn();
+        this.User = new userSchema();
     }
-});
 
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        message: err.message || "Internal Server Error",
-    });
-});
+    async onExecute() {
+        console.log("Setting up express middlewares...");
+        this.serverConnection();
+        this.userSignup();
+        console.log("Express middlewares setup completed.");
+    }
 
-app.get("/user/userAuthentication", async (req, res) => {
-    // console.log(req.body);   
-    // Update the code with the logic for upsert
-    res.send("Successfully Updated!!!")
-})
+    async serverConnection() {
+        try {
+            await this.db.connectDB();
+            const server = this.expressInstance.listen(3001, () => {
+                console.log(`Server is listening at the port: ${server.address().port}`)
+            });
+        } catch (error) {
+            console.error(`Error setting up express: ${error.message}`);
+            process.exit(1);
+        }
+    }
 
-app.use("/index", (req, res, next) => {
-    // res.send("Server is live!!")
-    res.send(`Request has been made to: ${req.url} ${req.body} ${server.address().port}`);
-    // next();
-})
+    async userSignup() {
+        this.expressInstance.use(express.json());
+        this.expressInstance.post("/signup", async (req, res) => {
+            try {
+                const userModel = this.User.getSchema();
+                const User = new userModel({
+                    name: "Alex Smith",
+                    email: "alex.smith@gmail.com",
+                    password: "password123",
+                    isAdmin: req.body.isAdmin || false
+                });
+                await User.save();
+                res.status(200).json({ message: "User signed up successfully" });
+            } catch (error) {
+                console.error(`Error during user signup: ${error.message}`);
+                res.status(500).json({ message: "Internal Server Error" });
+            }
+        });
+    }
+}
 
-const server = app.listen(3003, () => {
-    console.log(`Server is started successfully on port ${server.address().port}`);
+const app = new App();
+app.onExecute().then(() => {
+    console.log("App is running successfully.");
+}).catch((error) => {
+    console.error(`Error in app execution: ${error.message}`);
+    process.exit(1);
 });
