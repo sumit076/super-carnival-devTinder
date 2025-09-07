@@ -16,6 +16,7 @@ export default class App {
         this.userSignup();
         this.getUserDetailsByEmail();
         this.getAllUserDetails();
+        this.updateUserDetails();
         console.log("Express middlewares setup completed.");
     }
 
@@ -37,9 +38,9 @@ export default class App {
             try {
                 const userModel = this.User.getSchema();
                 const User = new userModel({
-                    name: "Alex Smith",
-                    email: "alex.smith1@gmail.com",
-                    password: "password1234",
+                    name: req.body.name,
+                    email: req.body.email,
+                    // password: "xyz", // Kept a default password in schema
                     isAdmin: req.body.isAdmin || false
                 });
                 await User.save();
@@ -94,6 +95,23 @@ export default class App {
                 })
             } catch (error) {
                 res.status(404).json({ message: `Error: ${error.message}` })
+            }
+        })
+    }
+
+    // Check the ID of the user and update the details
+    async updateUserDetails() {
+        this.expressInstance.use(express.json());
+        this.expressInstance.patch("/updateUserDetails/:email", async (req, res) => {
+
+            try {
+                let email = req.params?.email;
+                if (!email) { return res.status(400).json({ message: "email ID is required" }); }
+                const userModel = this.User.getSchema();
+                await userModel.findOneAndUpdate({ email }, { $set: req.body }, { new: true, returnDocument: 'before', runValidators: true });
+                res.status(200).json({ message: "User details updated successfully" });
+            } catch (error) {
+                res.status(400).json({ message: `Error: ${error.message}` })
             }
         })
     }
